@@ -9,3 +9,8 @@ error.txt
 cookies/*.txt
 cookies/*.json
 *.session
+
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
