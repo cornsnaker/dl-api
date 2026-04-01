@@ -16,7 +16,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ffmpeg curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Node.js runtime for Next.js (standalone would be better but we keep it simple)
+# Node.js runtime for Next.js standalone server
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
@@ -31,13 +31,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY scripts/ ./scripts/
 
-# Frontend build output
-COPY --from=frontend-builder /build/frontend/.next ./frontend/.next
+# Frontend standalone build (minimal footprint — no node_modules needed)
+COPY --from=frontend-builder /build/frontend/.next/standalone ./frontend/
+COPY --from=frontend-builder /build/frontend/.next/static ./frontend/.next/static
 COPY --from=frontend-builder /build/frontend/public ./frontend/public
-COPY --from=frontend-builder /build/frontend/package.json ./frontend/package.json
-COPY --from=frontend-builder /build/frontend/package-lock.json ./frontend/package-lock.json
-COPY --from=frontend-builder /build/frontend/node_modules ./frontend/node_modules
-COPY --from=frontend-builder /build/frontend/next.config.mjs ./frontend/next.config.mjs
 
 # Create directories for runtime files
 RUN mkdir -p cookies
