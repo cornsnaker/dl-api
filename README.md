@@ -1,22 +1,180 @@
 # Smart Media Extractor API
 
-Production-ready FastAPI service for extracting media links from YouTube, Instagram, TikTok, and other supported sources.
+<p align="center">
+  <img src="app/static/favicon.svg" width="64" height="64" alt="dl-api logo" />
+</p>
 
-## Features
+<p align="center">
+  <strong>Production-ready media extraction service with a stunning Next.js frontend.</strong><br />
+  Extract and download video, audio, images &amp; subtitles from YouTube, Instagram, TikTok and more.
+</p>
 
-- FastAPI-based async API
-- `yt-dlp` as the main universal extractor
-- Smart routing by URL
-- Instagram priority chain: `instaloader -> gallery-dl -> yt-dlp`
-- TikTok priority chain: custom no-watermark provider -> `yt-dlp`
-- Standardized JSON response for every supported platform
-- Streaming proxy endpoint for hotlink-protected media
-- SEO-friendly web UI with animated landing pages
-- Release-friendly file logging
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-docker">Docker</a> •
+  <a href="#-deploy-to-vercel">Vercel</a> •
+  <a href="#-api-reference">API Reference</a> •
+  <a href="#-frontend">Frontend</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
 
-## Standard Response
+---
 
-`GET /extract` and `POST /extract` always return the same success shape:
+## ✨ Features
+
+| Category | Details |
+|----------|---------|
+| **Extraction** | FastAPI async API powered by `yt-dlp` as the universal extractor |
+| **Smart Routing** | Auto-detects platform from URL and picks the best extractor chain |
+| **Instagram** | Priority chain: `instaloader → gallery-dl → yt-dlp` |
+| **TikTok** | Priority chain: custom no-watermark provider → `yt-dlp` |
+| **Streaming Proxy** | `/stream` endpoint for hotlink-protected or CORS-blocked media |
+| **Frontend** | Next.js 15 app with dark glassmorphism UI, Framer Motion animations, Tailwind CSS |
+| **Provider Branding** | Dynamic accent colours per platform (YouTube red, Instagram pink, TikTok cyan) |
+| **SEO** | Server-rendered landing pages, sitemap, robots.txt, structured data |
+| **Logging** | File-based request & error logs; clients only see clean public messages |
+
+## 🛠 Tech Stack
+
+### Backend
+- **Python 3.12+** / **FastAPI** — async API server
+- **yt-dlp** — universal media extractor
+- **instaloader** / **gallery-dl** — Instagram-specific extractors
+- **httpx** — async HTTP client
+- **uvicorn** — ASGI server
+
+### Frontend (`frontend/`)
+- **Next.js 15** (App Router) with **React 18**
+- **Tailwind CSS** — utility-first styling with custom design tokens
+- **Framer Motion** — layout animations, stagger transitions, micro-interactions
+- **Lucide React** — icon library
+- **TypeScript** — full type safety matching the backend API schema
+
+### Design System
+- Deep dark mode (`#050510`) with radial gradient mesh backgrounds
+- Glassmorphism cards (`backdrop-blur-xl`, translucent borders)
+- Neon glow borders and shadows (purple/pink gradients)
+- Shimmer skeleton loaders matching result card layout
+- Provider-aware accent colours and watermark branding
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.12+
+- Node.js 20+
+- FFmpeg (for stream merging)
+
+### 1. Backend
+
+```bash
+# Clone and set up
+git clone https://github.com/cornsnaker/dl-api.git
+cd dl-api
+
+# Create environment
+cp .env.example .env
+python3 -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+# .\.venv\Scripts\activate       # Windows PowerShell
+
+pip install -r requirements.txt
+
+# Start the API server
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 2. Frontend
+
+```bash
+cd frontend
+npm install
+
+# Set the API URL
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+
+# Development
+npm run dev
+
+# Production build
+npm run build && npm start
+```
+
+| Service | URL |
+|---------|-----|
+| Backend API | `http://localhost:8000` |
+| Swagger UI | `http://localhost:8000/docs` |
+| Backend Web UI | `http://localhost:8000/` |
+| Next.js Frontend | `http://localhost:3000` |
+
+## 🐳 Docker
+
+Build and run the full stack (backend + frontend) in a single container:
+
+```bash
+docker build -t dl-api .
+docker run -p 8000:8000 -p 3000:3000 --env-file .env dl-api
+```
+
+The `Dockerfile` uses a multi-stage build:
+1. **Stage 1** — Builds the Next.js frontend with `node:20-alpine`
+2. **Stage 2** — Runs both the FastAPI backend (port 8000) and Next.js frontend (port 3000) on `python:3.12-slim` with Node.js
+
+### Docker Compose (optional)
+
+```yaml
+services:
+  dl-api:
+    build: .
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    env_file: .env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    restart: unless-stopped
+```
+
+## ▲ Deploy to Vercel
+
+The frontend can be deployed to Vercel. A `vercel.json` is included at the project root.
+
+1. Push the repository to GitHub
+2. Import the project in [Vercel](https://vercel.com/new)
+3. Set the **Root Directory** to `frontend`
+4. Add the environment variable:
+   - `NEXT_PUBLIC_API_URL` = your backend API URL (e.g. `https://api.yourdomain.com`)
+5. Deploy
+
+> **Note:** The Python backend must be hosted separately (e.g. on a VPS, Railway, or Fly.io). Vercel only deploys the Next.js frontend.
+
+## 📡 API Reference
+
+### `GET /health`
+
+Health check. Returns `{"status": "ok", "app": "..."}`.
+
+### `GET /extract`
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | ✅ | Media URL to extract |
+| `include_raw` | bool | ❌ | Include raw extractor output (default: `false`) |
+
+```bash
+curl "http://localhost:8000/extract?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+### `POST /extract`
+
+```bash
+curl -X POST "http://localhost:8000/extract" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.instagram.com/p/XXXXXXXXXXX/", "include_raw": false}'
+```
+
+### Success Response
 
 ```json
 {
@@ -59,18 +217,13 @@ Production-ready FastAPI service for extracting media links from YouTube, Instag
   },
   "config": {
     "proxy_required": true,
-    "headers": {
-      "User-Agent": "Mozilla/5.0...",
-      "Referer": "https://www.youtube.com/"
-    },
+    "headers": { "User-Agent": "...", "Referer": "https://www.youtube.com/" },
     "expires_at": 1711568647
   }
 }
 ```
 
-## Error Response
-
-Release mode hides raw upstream extractor messages from clients.
+### Error Response
 
 ```json
 {
@@ -83,162 +236,142 @@ Release mode hides raw upstream extractor messages from clients.
 }
 ```
 
-Full internal errors are written to `error.txt`.
+Full internal errors are written to `error.txt` (never exposed to clients in production).
 
-## Endpoints
+### `GET /stream`
 
-`GET /`
+Proxy media through this server without saving to disk. Supports HTTP Range requests.
 
-Animated web UI for end users. Users can paste a media URL and instantly see available quality options, audio-only files, subtitles, images, and release-friendly errors.
-
-SEO landing pages are also available:
-
-- `/youtube-video-downloader`
-- `/instagram-downloader`
-- `/tiktok-video-downloader`
-- `/facebook-video-downloader`
-- `/x-video-downloader`
-
-SEO helper routes:
-
-- `/sitemap.xml`
-- `/robots.txt`
-
-`GET /health`
-
-Health check.
-
-`GET /extract`
-
-Query params:
-
-- `url` required
-- `include_raw` optional, default `false`
-
-Example:
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | ❌ | Source URL to extract then stream |
+| `media_url` | string | ❌ | Direct media URL to proxy |
+| `item_index` | int | ❌ | Index in media collection (default: `1`) |
+| `referer` | string | ❌ | Referer header for hotlink protection |
 
 ```bash
-curl "http://127.0.0.1:8000/extract?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ&include_raw=false"
+curl -L "http://localhost:8000/stream?media_url=https://cdn.example.com/video.mp4" -o video.mp4
 ```
 
-`POST /extract`
+### Proxy Fallback Logic
 
-Example:
+If `config.proxy_required` is `true` in the extraction response, direct media URLs may be blocked by CORS or hotlink protection. In this case, download buttons should point to:
 
-```bash
-curl -X POST "http://127.0.0.1:8000/extract" \
-  -H "Content-Type: application/json" \
-  -d "{\"url\":\"https://www.instagram.com/p/XXXXXXXXXXX/\",\"include_raw\":false}"
+```
+{API_URL}/stream?media_url={encoded_media_url}
 ```
 
-`GET /stream`
+The Next.js frontend handles this automatically.
 
-Proxy media through this server without saving the file to disk.
+## 🎨 Frontend
 
-Examples:
+The `frontend/` directory contains a standalone Next.js application.
 
-```bash
-curl -L "http://127.0.0.1:8000/stream?url=https%3A%2F%2Fwww.tiktok.com%2F%40user%2Fvideo%2F1234567890&item_index=1" -o media.bin
+### Architecture
+
+```
+frontend/
+├── app/
+│   ├── layout.tsx          # Root layout with metadata
+│   ├── page.tsx            # Hero section, URL input form, state management
+│   └── globals.css         # Tailwind directives, glass-card utilities, shimmer
+├── components/
+│   ├── MediaResultCard.tsx  # Result card with proxy logic & provider branding
+│   └── SkeletonCard.tsx     # Shimmer loading skeleton
+├── lib/
+│   ├── types.ts            # TypeScript interfaces matching API schema
+│   └── utils.ts            # formatBytes, getProviderTheme, buildDownloadUrl
+├── tailwind.config.ts      # Custom gradients, animations, glow shadows
+├── next.config.mjs         # Image remote patterns for CDN thumbnails
+└── package.json
 ```
 
-```bash
-curl -L "http://127.0.0.1:8000/stream?media_url=https%3A%2F%2Fcdn.example.com%2Fvideo.mp4&referer=https%3A%2F%2Fexample.com%2Fpost%2F1" -o media.bin
+### Key Features
+
+- **Animated hero** with gradient text and Framer Motion entrance transitions
+- **Tactile input field** with glow border on focus, inline extract button
+- **Shimmer skeleton** loaders that match the exact result card shape
+- **MediaResultCard** groups downloads into Video / Audio / Images / Subtitles
+- **Provider branding** — dynamic accent colours & watermark per platform
+- **`has_audio: false` indicator** — visual badge on video-only streams
+- **Size formatting** — `size_bytes` → human-readable KB / MB / GB
+- **Proxy-aware downloads** — uses `/stream` endpoint when `proxy_required` is `true`
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL (e.g. `http://localhost:8000`) |
+
+## 📁 Project Structure
+
+```
+dl-api/
+├── app/                          # FastAPI backend
+│   ├── main.py                   # App, middleware, exception handlers
+│   ├── config.py                 # Settings, cookie management
+│   ├── schemas.py                # Pydantic models
+│   ├── services/
+│   │   ├── router.py             # Smart platform detection & fallback chains
+│   │   ├── ytdlp_base.py         # Shared yt-dlp extraction logic
+│   │   ├── youtube_extractor.py  # Generic yt-dlp extractor
+│   │   ├── instagram_extractor.py
+│   │   ├── tiktok_extractor.py
+│   │   ├── response_mapper.py    # Internal → standardized response mapping
+│   │   ├── stream_proxy.py       # Streaming proxy with Range support
+│   │   └── errors.py             # Error classification & public shaping
+│   ├── templates/                # Jinja2 templates (backend web UI)
+│   └── static/                   # CSS, JS, SVG assets
+├── frontend/                     # Next.js 15 frontend
+├── scripts/                      # Cookie management CLI
+├── Dockerfile                    # Multi-stage build (backend + frontend)
+├── docker-entrypoint.sh          # Starts both services
+├── vercel.json                   # Vercel deployment config
+├── requirements.txt              # Python dependencies
+└── .env.example                  # Environment template
 ```
 
-## Project Structure
+## ⚙️ Environment
 
-- `app/main.py` FastAPI app, middleware, exception handlers
-- `app/services/router.py` smart route selection and fallback chain
-- `app/services/ytdlp_base.py` shared `yt-dlp` extraction logic
-- `app/services/youtube_extractor.py` generic `yt-dlp` extractor
-- `app/services/instagram_extractor.py` Instagram extractor chain
-- `app/services/tiktok_extractor.py` TikTok extractor chain
-- `app/services/response_mapper.py` standardized API mapping layer
-- `app/services/stream_proxy.py` streaming proxy service
-- `app/services/errors.py` error classification and public error shaping
-- `app/logging_config.py` request and error file loggers
+Create `.env` from `.env.example`:
 
-## Environment
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEBUG` | `false` | Show detailed errors to clients |
+| `REQUEST_TIMEOUT_SECONDS` | `20` | Extraction timeout |
+| `TIKTOK_API_BASE` | `https://www.tikwm.com/api/` | TikTok watermark-free API |
+| `COOKIES_DIR` | `cookies` | Directory for browser cookie files |
+| `INSTAGRAM_SESSIONFILE` | — | Optional Instaloader session file |
+| `HTTP_USER_AGENT` | — | Custom User-Agent header |
 
-Create `.env` from `.env.example`.
-
-Important values:
-
-- `DEBUG=false`
-- `REQUEST_TIMEOUT_SECONDS=20`
-- `TIKTOK_API_BASE=https://www.tikwm.com/api/`
-- `INSTAGRAM_SESSIONFILE=` optional
-- `INSTAGRAM_USERNAME=` optional
-- `INSTAGRAM_PASSWORD=` optional
-- `HTTP_USER_AGENT=` optional custom user agent
-
-## Install
-
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-Linux/macOS:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-## Run In Release Mode
-
-Do not use `--reload` for release.
-
-Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Linux/macOS:
-
-```bash
-./.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Swagger UI:
-
-`http://127.0.0.1:8000/docs`
-
-Web UI:
-
-`http://127.0.0.1:8000/`
-
-## Logging
+## 📋 Logging
 
 Two log files are created in the project root:
 
-- `log.txt` every incoming request
-- `error.txt` full internal extractor and server errors
+- **`log.txt`** — every incoming HTTP request (method, path, status, duration)
+- **`error.txt`** — full internal extractor and server errors
 
-This means clients only see clean public messages such as `Video topilmadi.`, while the full upstream error remains available on the server.
+Clients only see clean public messages (e.g. `Video topilmadi.`), while the full upstream error is kept server-side.
 
-## Production Notes
+## 🚢 Production Notes
 
-- Some Instagram posts require authentication even when the URL itself is valid
-- Signed CDN URLs may expire, so clients should use the response quickly
-- `config.proxy_required=true` means the safer option is using `/stream`
-- `DEBUG` should remain `false` in production
+- Keep `DEBUG=false` in production
+- Some Instagram posts require authentication cookies
+- Signed CDN URLs expire — clients should consume responses promptly
+- When `config.proxy_required=true`, use the `/stream` endpoint for downloads
+- The Next.js frontend reads `NEXT_PUBLIC_API_URL` at build time
 
-## Release Checklist
+## ✅ Release Checklist
 
-1. Create `.env`
+1. Create `.env` from `.env.example`
 2. Keep `DEBUG=false`
-3. Install dependencies from `requirements.txt`
-4. Start with `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-5. Verify `/health`
-6. Verify logs are being written to `log.txt` and `error.txt`
-
+3. Install Python dependencies: `pip install -r requirements.txt`
+4. Install frontend dependencies: `cd frontend && npm install`
+5. Build frontend: `npm run build`
+6. Start backend: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+7. Start frontend: `cd frontend && npm start`
+8. Verify `/health` returns `200`
+9. Verify logs are written to `log.txt` and `error.txt`
 
 ---
 
